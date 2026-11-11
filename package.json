@@ -1,0 +1,44 @@
+{
+  "name": "scratchsembly",
+  "version": "0.1.0",
+  "description": "A Scratch-style assembly playground for ARM, AArch64, x86, and x86_64.",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Michjzuman/scratchsembly.git"
+  },
+  "homepage": "https://github.com/Michjzuman/scratchsembly#readme",
+  "bugs": {
+    "url": "https://github.com/Michjzuman/scratchsembly/issues"
+  },
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": "^22.12.0 || >=24.0.0"
+  },
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview --host 0.0.0.0",
+    "test": "vitest run",
+    "test:e2e": "playwright test",
+    "format": "prettier --write src e2e docs *.ts *.json *.md index.html"
+  },
+  "dependencies": {
+    "@blockly/continuous-toolbox": "^7.0.9",
+    "blockly": "^12.3.1",
+    "lucide-react": "^0.468.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.65.0",
+    "@types/node": "^22.20.5",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@vitejs/plugin-react": "^4.3.4",
+    "prettier": "^3.9.10",
+    "typescript": "~5.7.2",
+    "vite": "^6.1.0",
+    "vitest": "^5.1.0"
+  }
+}
