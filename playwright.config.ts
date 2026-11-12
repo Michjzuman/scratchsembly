@@ -3,6 +3,7 @@ import { defineConfig, devices } from "@playwright/test";
 export default defineConfig({
   testDir: "./e2e",
   testMatch: "**/*.e2e.ts",
+  testIgnore: "**/pages.e2e.ts",
   fullyParallel: true,
   use: {
     baseURL: "http://127.0.0.1:5173",

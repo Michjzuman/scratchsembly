@@ -341,7 +341,7 @@ export const BlockEditor = forwardRef<EditorHandle, Props>(
         theme,
         sounds: false,
         trashcan: false,
-        media: "/blockly-media/",
+        media: `${import.meta.env.BASE_URL}blockly-media/`,
         toolbox: buildToolbox(),
         move: { scrollbars: true, drag: true, wheel: true },
         zoom: {

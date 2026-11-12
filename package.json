@@ -6,7 +6,7 @@
     "type": "git",
     "url": "https://github.com/Michjzuman/scratchsembly.git"
   },
-  "homepage": "https://github.com/Michjzuman/scratchsembly#readme",
+  "homepage": "https://michjzuman.github.io/scratchsembly/",
   "bugs": {
     "url": "https://github.com/Michjzuman/scratchsembly/issues"
   },
@@ -21,7 +21,8 @@
     "preview": "vite preview --host 0.0.0.0",
     "test": "vitest run",
     "test:e2e": "playwright test",
-    "format": "prettier --write src e2e docs *.ts *.json *.md index.html"
+    "test:pages": "npm run build && playwright test --config playwright.pages.config.ts",
+    "format": "prettier --write .github src e2e docs *.ts *.json *.md index.html"
   },
   "dependencies": {
     "@blockly/continuous-toolbox": "^7.0.9",

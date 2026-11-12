@@ -21,10 +21,13 @@ npm run format
 npm run build
 npm test
 npm run test:e2e
+npm run test:pages
 npm audit
 ```
 
 Vitest covers CPU behavior, expression lowering, previews, migrations, and block schema. Playwright covers desktop and mobile interaction, including real pointer-based dragging. English-default journeys and explicit saved-German-language journeys both matter.
+
+`npm run test:pages` builds and serves the production bundle under `/scratchsembly/`, checking that media, native workers, and the English interface work without the development server. `.github/workflows/pages.yml` runs unit and production-path browser checks before deploying pushes to `main` to GitHub Pages.
 
 Optional native assembly tests require NASM for x86/x86_64 and Clang for ARM/AArch64. If a tool is unavailable, only its corresponding integration tests are skipped. Installing both lets you verify every target's emitted source.
 

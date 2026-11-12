@@ -56,7 +56,7 @@ export async function loadGermanUI(page: Page) {
   await load(page);
 }
 export async function load(page: Page) {
-  await page.goto("/");
+  await page.goto("./");
   await expect(page.locator(".workspace-shell")).toHaveAttribute(
     "data-program-blocks",
     "8",

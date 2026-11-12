@@ -11,6 +11,8 @@ A browser-based assembly playground with Scratch-style blocks. Build programs in
 
 Supports **ARM, AArch64, x86, and x86_64**. Execution is simulated in a Web Worker; this is an educational integer-instruction subset, not a complete machine or operating system.
 
+**Try it:** [michjzuman.github.io/scratchsembly](https://michjzuman.github.io/scratchsembly/)
+
 ## Getting started
 
 Requires **Node.js 22.12+ (22.x), or 24+**, and npm.
@@ -34,6 +36,20 @@ npm run format
 ```
 
 With NASM installed, integration tests assemble x86 exports into ELF32/ELF64 object files. With Clang installed, they also assemble ARM/AArch64 exports. Tests requiring an unavailable assembler are skipped; all other tests still run.
+
+## GitHub Pages deployment
+
+The [Pages workflow](.github/workflows/pages.yml) builds, tests, and deploys `dist/` on pushes to `main`, or when run manually from the Actions tab. In **Settings → Pages → Build and deployment**, select **GitHub Actions** as the source. Publishing the repository root directly does not work: browsers cannot execute the unbuilt TypeScript source.
+
+Vite uses a relative asset base, and Blockly media follows that base. The worker, favicon, JavaScript, CSS, and media therefore work under `/scratchsembly/` as well as at a site root, without hard-coding the repository name into the build.
+
+To check the production build locally under the same kind of repository subpath:
+
+```sh
+npm run test:pages
+```
+
+This builds the app, serves it at `http://127.0.0.1:4173/scratchsembly/`, and runs desktop/mobile browser checks for assets, worker execution on all four architectures, and the English interface before deployment. No backend is required.
 
 ## Choose a project architecture
 
