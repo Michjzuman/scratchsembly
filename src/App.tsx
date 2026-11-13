@@ -68,7 +68,7 @@ type Project = {
   name: string;
   workspace: WorkspaceData;
 };
-type Modal = "examples" | "learn" | "help" | "new" | null;
+type Modal = "examples" | "learn" | "help" | "new" | "welcome" | null;
 const STORAGE_KEY = "asmblocks.project.v1"; // Preserve projects from the previous name.
 function readProject(): Project | null {
   try {
@@ -122,13 +122,15 @@ export default function App() {
     return value;
   });
   const [initialProject] = useState(readProject);
+  const projectReady = useRef(!!initialProject);
+  const firstSavePending = useRef(false);
   const [architecture, setProjectArchitecture] = useState<Architecture>(
     initialProject?.architecture || "x86",
   );
   const [newArchitecture, setNewArchitecture] =
     useState<Architecture>(architecture);
   const [editorData, setEditorData] = useState<WorkspaceData | null>(
-    initialProject?.workspace || null,
+    initialProject?.workspace || {},
   );
   const architectureRef = useRef(architecture);
   architectureRef.current = architecture;
@@ -138,7 +140,7 @@ export default function App() {
   const [changed, setChanged] = useState<string[]>([]),
     [logs, setLogs] = useState<LogEntry[]>([]),
     [breakpoints, setBreakpoints] = useState<string[]>([]);
-  const [modal, setModal] = useState<Modal>(null),
+  const [modal, setModal] = useState<Modal>(initialProject ? null : "welcome"),
     [menu, setMenu] = useState<"file" | "edit" | null>(null);
   const [saved, setSaved] = useState<"saved" | "saving" | "error">("saved"),
     [delay, setDelay] = useState(500);
@@ -165,7 +167,7 @@ export default function App() {
   }, []);
   const saveProject = useCallback((workspace?: WorkspaceData) => {
     const data = workspace || workspaceRef.current;
-    if (!data) return false;
+    if (!data || !projectReady.current) return false;
     try {
       localStorage.setItem(
         STORAGE_KEY,
@@ -203,9 +205,15 @@ export default function App() {
         setLogs([]);
         setChanged([]);
       }
-      setSaved("saving");
-      clearTimeout(saveTimer.current);
-      saveTimer.current = setTimeout(() => saveProject(workspace), 450);
+      if (projectReady.current) {
+        setSaved("saving");
+        clearTimeout(saveTimer.current);
+        if (firstSavePending.current) {
+          firstSavePending.current = false;
+          saveProject(workspace);
+        } else
+          saveTimer.current = setTimeout(() => saveProject(workspace), 450);
+      }
     },
     [saveProject],
   );
@@ -256,7 +264,7 @@ export default function App() {
     };
   }, [notify]);
   useEffect(() => {
-    if (workspaceRef.current) {
+    if (workspaceRef.current && projectReady.current) {
       clearTimeout(saveTimer.current);
       setSaved("saving");
       saveTimer.current = setTimeout(() => saveProject(), 450);
@@ -743,7 +751,7 @@ export default function App() {
                 state={state}
                 visible={view === "blocks"}
               />
-              {!result.blockCount && (
+              {!(result.workspaceBlockCount ?? result.blockCount) && (
                 <p className="empty-workspace">
                   {t("Ziehe einen Block hierher.", "Drag a block here.")}
                 </p>
@@ -968,17 +976,27 @@ export default function App() {
           </button>
         </Dialog>
       )}
-      {modal === "new" && (
+      {(modal === "new" || modal === "welcome") && (
         <Dialog
-          title={t("Neues Projekt", "New project")}
+          title={
+            modal === "welcome"
+              ? t("Architektur wählen", "Choose an architecture")
+              : t("Neues Projekt", "New project")
+          }
           eyebrow=""
           onClose={closeModal}
+          dismissible={modal !== "welcome"}
         >
           <p className="dialog-intro">
-            {t(
-              "Das aktuelle Programm wird ersetzt. Möchtest du es vorher herunterladen?",
-              "The current program will be replaced. Would you like to download it first?",
-            )}
+            {modal === "welcome"
+              ? t(
+                  "Wähle die Architektur für dein erstes Projekt. Später kannst du unter Datei → Neu eine andere wählen.",
+                  "Choose the architecture for your first project. You can choose another with File → New later.",
+                )
+              : t(
+                  "Das aktuelle Programm wird ersetzt. Möchtest du es vorher herunterladen?",
+                  "The current program will be replaced. Would you like to download it first?",
+                )}
           </p>
           <fieldset className="architecture-choice">
             <legend>
@@ -1002,33 +1020,45 @@ export default function App() {
             ))}
           </fieldset>
           <div className="dialog-buttons">
-            <button
-              className="dialog-secondary"
-              onClick={() => exportProject("json")}
-            >
-              {t("Herunterladen", "Download")}
-            </button>
+            {modal !== "welcome" && (
+              <button
+                className="dialog-secondary"
+                onClick={() => exportProject("json")}
+              >
+                {t("Herunterladen", "Download")}
+              </button>
+            )}
             <button
               className="dialog-primary"
               onClick={() => {
-                const title = t("Unbenanntes Projekt", "Untitled project");
+                const firstProject = modal === "welcome";
+                projectReady.current = true;
+                firstSavePending.current = firstProject;
+                const title = firstProject
+                  ? exampleMeta(0).name
+                  : t("Unbenanntes Projekt", "Untitled project");
                 setName(title);
                 nameRef.current = title;
                 clearTimeout(saveTimer.current);
                 if (newArchitecture !== architecture) {
                   architectureRef.current = newArchitecture;
-                  setEditorData({});
+                  setEditorData(firstProject ? null : {});
                   setProjectArchitecture(newArchitecture);
                   const fresh = createState(newArchitecture);
                   stateRef.current = fresh;
                   setState(fresh);
-                } else editor.current?.loadExample([]);
+                } else
+                  editor.current?.loadExample(
+                    firstProject ? EXAMPLES[0].blocks : [],
+                  );
                 setBreakpoints([]);
                 setView("blocks");
                 setModal(null);
               }}
             >
-              {t("Neu anfangen", "Start fresh")}
+              {modal === "welcome"
+                ? t("Projekt erstellen", "Create project")
+                : t("Neu anfangen", "Start fresh")}
             </button>
           </div>
         </Dialog>

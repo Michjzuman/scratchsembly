@@ -64,7 +64,7 @@ test("numbers are edited directly in their input, not dragged from a standalone 
 test("a single click previews the live value without executing or opening a register picker", async ({
   page,
 }, info) => {
-  await page.getByRole("treeitem", { name: "Werte", exact: true }).click();
+  await page.getByRole("treeitem", { name: "Register", exact: true }).click();
   await palette(page)
     .locator(":scope > .value_register")
     .filter({ hasText: /^B$/ })
@@ -114,7 +114,9 @@ for (const colorScheme of ["light", "dark"] as const)
         [start([mov("EAX", 5)], info.project.name === "mobile")],
         1,
       );
-      await page.getByRole("treeitem", { name: "Werte", exact: true }).click();
+      await page
+        .getByRole("treeitem", { name: "Register", exact: true })
+        .click();
       const target = main(page).locator(".asm_mov > .value_number"),
         box = (await target.boundingBox())!;
       const source = palette(page)
@@ -176,7 +178,7 @@ for (const colorScheme of ["light", "dark"] as const)
         1,
       );
       await page
-        .getByRole("treeitem", { name: "Befehle", exact: true })
+        .getByRole("treeitem", { name: "Register", exact: true })
         .click();
       const target = (await main(page)
         .locator(".asm_mov > .blocklyPath")
@@ -263,7 +265,7 @@ test("a palette refresh cannot change the reporter held before a drag starts", a
     [start([mov("EAX", 5)], info.project.name === "mobile")],
     1,
   );
-  await page.getByRole("treeitem", { name: "Werte", exact: true }).click();
+  await page.getByRole("treeitem", { name: "Register", exact: true }).click();
   const source = palette(page)
     .locator(":scope > .value_register")
     .filter({ hasText: /^B$/ });
@@ -332,9 +334,7 @@ test("every newly created label has exactly one independent event hat", async ({
   page,
 }, info) => {
   for (let i = 0; i < 2; i++) {
-    await page
-      .getByRole("treeitem", { name: "Ereignisse", exact: true })
-      .click();
+    await page.getByRole("treeitem", { name: "Labels", exact: true }).click();
     const source = palette(page).locator(":scope > .asm_label");
     await expect
       .poll(async () => {

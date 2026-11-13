@@ -6,6 +6,7 @@ import {
   expressionState,
   migrateWorkspace,
   readWorkspace,
+  saveWorkspaceData,
   specState,
 } from "./block-model";
 import { binary, number, register } from "./engine/expressions";
@@ -223,6 +224,90 @@ describe("block schema, event sections, and migration", () => {
       workspace.dispose();
     }
   });
+  it("unused labels cannot change generated names or reset the active program", () => {
+    const workspace = load([
+      {
+        type: "asm_start",
+        next: { block: specState({ op: "MOV", a: "EAX", b: "1" }) },
+      },
+      { type: "asm_label", fields: { A: "unused" } },
+    ]);
+    try {
+      const before = readWorkspace(workspace as Blockly.WorkspaceSvg);
+      workspace
+        .getBlocksByType("asm_label", false)[0]
+        .setFieldValue("__scratchsembly_end", "A");
+      const after = readWorkspace(workspace as Blockly.WorkspaceSvg);
+      expect(after.program).toEqual(before.program);
+      expect(after.lines).toEqual(before.lines);
+    } finally {
+      workspace.dispose();
+    }
+  });
+  it("handles reachable cycles and ignores duplicate names in unused label sections", () => {
+    const workspace = load([
+      { type: "asm_start", next: { block: specState({ op: "JMP", a: "a" }) } },
+      {
+        type: "asm_label",
+        fields: { A: "a" },
+        next: { block: specState({ op: "CALL", a: "b" }) },
+      },
+      {
+        type: "asm_label",
+        fields: { A: "b" },
+        next: { block: specState({ op: "JMP", a: "a" }) },
+      },
+      { type: "asm_label", fields: { A: "unused" } },
+      { type: "asm_label", fields: { A: "unused" } },
+    ]);
+    try {
+      const result = readWorkspace(workspace as Blockly.WorkspaceSvg);
+      expect(result.errors).toEqual([]);
+      expect(result.blockCount).toBe(5);
+      expect(result.program.labels).not.toHaveProperty("unused");
+      workspace
+        .getBlocksByType("asm_start", false)[0]
+        .getNextBlock()!
+        .setFieldValue("unused", "A");
+      expect(
+        readWorkspace(workspace as Blockly.WorkspaceSvg).errors.some((error) =>
+          error.message.includes("mehrfach"),
+        ),
+      ).toBe(true);
+    } finally {
+      workspace.dispose();
+    }
+  });
+  it("never promotes a modern parked statement to start after save, reload or language changes", () => {
+    const workspace = new Blockly.Workspace();
+    try {
+      Blockly.serialization.workspaces.load(
+        {
+          scratchsemblyWorkspaceVersion: 1,
+          blocks: {
+            languageVersion: 0,
+            blocks: [specState({ op: "MOV", a: "EAX", b: "99" })],
+          },
+        },
+        workspace,
+      );
+      for (const language of ["en", "de", "asm"] as const) {
+        configureBlockLanguage(language);
+        const saved = saveWorkspaceData(workspace);
+        const migrated = migrateWorkspace(saved);
+        expect(migrateWorkspace(migrated)).toEqual(migrated);
+        Blockly.serialization.workspaces.load(migrated, workspace);
+        expect(workspace.getBlocksByType("asm_start", false)).toHaveLength(0);
+        expect(workspace.getBlocksByType("asm_mov", false)).toHaveLength(1);
+        const result = readWorkspace(workspace as Blockly.WorkspaceSvg);
+        expect(result.blockCount).toBe(0);
+        expect(result.workspaceBlockCount).toBeGreaterThan(0);
+        expect(result.errors[0].message).toContain("start");
+      }
+    } finally {
+      workspace.dispose();
+    }
+  });
   it("retains zero as a valid legacy shift count", () => {
     expect(execute([specState({ op: "SHL", a: "EAX", b: "0" })]).status).toBe(
       "finished",
@@ -243,63 +328,43 @@ describe("block schema, event sections, and migration", () => {
       "value_add",
     );
   });
-  it("puts entry hats and common commands first, with CMP grouped under Logic in every language", () => {
+  it("groups Labels, Registers and Memory with instructions before reporters in every language", () => {
     for (const language of ["de", "en", "asm"] as const) {
       configureBlockLanguage(language);
       const categories = buildToolbox().contents;
       expect(categories.map((category) => category.name)).toEqual(
         language === "de"
-          ? [
-              "Ereignisse",
-              "Befehle",
-              "Steuerung",
-              "Stack",
-              "Speicher",
-              "Werte",
-              "Rechnen",
-              "Logik",
-            ]
-          : [
-              "Events",
-              "Commands",
-              "Control",
-              "Stack",
-              "Memory",
-              "Values",
-              "Operators",
-              "Logic",
-            ],
+          ? ["Labels", "Register", "Speicher", "Rechnen", "Logik"]
+          : ["Labels", "Registers", "Memory", "Operators", "Logic"],
       );
       const types = categories.flatMap((category) =>
         category.contents.map((entry) => String(entry.type)),
       );
-      expect(types.slice(0, 7)).toEqual([
-        "asm_start",
-        "asm_label",
-        "asm_mov",
-        "asm_add",
-        "asm_sub",
-        "asm_inc",
-        "asm_dec",
-      ]);
-      const common = types.filter((type) => type !== "asm_cmp");
-      const firstValue = common.findIndex((type) => type.startsWith("value_"));
-      expect(firstValue).toBeGreaterThan(7);
-      expect(
-        common.slice(0, firstValue).every((type) => type.startsWith("asm_")),
-      ).toBe(true);
-      expect(
-        common.slice(firstValue).every((type) => type.startsWith("value_")),
-      ).toBe(true);
-      expect(categories[7].contents[0].type).toBe("asm_cmp");
+      expect(types.slice(0, 2)).toEqual(["asm_start", "asm_label"]);
+      for (const category of categories) {
+        const entries = category.contents.map((entry) => String(entry.type));
+        const firstValue = entries.findIndex((type) =>
+          type.startsWith("value_"),
+        );
+        if (firstValue < 0) continue;
+        expect(
+          entries.slice(0, firstValue).every((type) => type.startsWith("asm_")),
+        ).toBe(true);
+        expect(
+          entries.slice(firstValue).every((type) => type.startsWith("value_")),
+        ).toBe(true);
+      }
+      expect(categories[4].contents[0].type).toBe("asm_cmp");
       expect(types.filter((type) => type === "asm_cmp")).toHaveLength(1);
     }
   });
-  it("groups calls with control flow, leaves push/pop in Stack and puts writes before reads", () => {
+  it("combines hats and flow under Labels, commands and values under Registers, and stack and memory under Memory", () => {
     const categories = buildToolbox().contents;
     const types = (index: number) =>
       categories[index].contents.map((entry) => entry.type);
-    expect(types(2)).toEqual([
+    expect(types(0)).toEqual([
+      "asm_start",
+      "asm_label",
       "asm_jmp",
       "asm_branch",
       "asm_je",
@@ -309,9 +374,20 @@ describe("block schema, event sections, and migration", () => {
       "asm_call",
       "asm_ret",
     ]);
-    expect(types(3)).toEqual(["asm_push", "asm_pop"]);
-    expect(types(4)).toEqual(["asm_store", "value_memory"]);
-    expect(types(5)).toEqual(REGISTER_NAMES.map(() => "value_register"));
+    expect(types(1)).toEqual([
+      "asm_mov",
+      "asm_add",
+      "asm_sub",
+      "asm_inc",
+      "asm_dec",
+      ...REGISTER_NAMES.map(() => "value_register"),
+    ]);
+    expect(types(2)).toEqual([
+      "asm_push",
+      "asm_pop",
+      "asm_store",
+      "value_memory",
+    ]);
     const workspace = new Blockly.Workspace();
     try {
       expect(workspace.newBlock("asm_call").getColour()).toBe(
@@ -319,6 +395,9 @@ describe("block schema, event sections, and migration", () => {
       );
       expect(workspace.newBlock("asm_ret").getColour()).toBe(
         workspace.newBlock("asm_jmp").getColour(),
+      );
+      expect(workspace.newBlock("asm_push").getColour()).toBe(
+        workspace.newBlock("value_memory").getColour(),
       );
     } finally {
       workspace.dispose();

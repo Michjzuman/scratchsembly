@@ -125,7 +125,7 @@ test("labels are independent entry points, not automatic continuations", async (
         next: { block: mov("EBX", 99) },
       },
     ],
-    3,
+    1,
   );
   await values(page, info.project.name === "mobile");
   await fast(page);

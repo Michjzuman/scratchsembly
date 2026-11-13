@@ -53,7 +53,9 @@ This builds the app, serves it at `http://127.0.0.1:4173/scratchsembly/`, and ru
 
 ## Choose a project architecture
 
-Select **File → New**, choose a target, and confirm with **Start fresh**. Canceling leaves the current project unchanged.
+On your first visit, choose an architecture and confirm with **Create project**. A matching countdown example opens; nothing is autosaved before you make this choice. Returning visitors go straight to their saved project without another prompt.
+
+For subsequent projects, select **File → New**, choose a target, and confirm with **Start fresh**. Canceling leaves the current project unchanged.
 
 | Choice    | Target                               | Registers                                | Word / stack slot | Export                 |
 | --------- | ------------------------------------ | ---------------------------------------- | ----------------- | ---------------------- |
@@ -73,6 +75,7 @@ This is not just a syntax setting: register sets, integer widths, flags, stack b
 - **Dropdowns are not text inputs.** Dropdowns share their block's hue and have a frame, white text, and an arrow. Numbers and label names use white input pills. All block text is bold; white captions on yellow blocks have a subtle readability shadow.
 - **Inspect values without running.** Click a register, calculation, or comparison reporter to preview its current value. Previews are read-only, update with CPU state, and never execute statements or change registers, flags, memory, or the stack.
 - **Use independent entry points.** The `start` hat, with its green play symbol, is the program entry. Each label has its own hat. Reach another section using a jump or call, not by placing it below another script. A section ends instead of falling through into an unrelated label.
+- **Park work in progress freely.** Only the start section and label sections reachable from it through jumps or calls are compiled, counted, exported, and run. Unconnected blocks and unused labels stay in the workspace and in saved projects, even when incomplete or invalid. Editing them does not reset execution. If a section becomes reachable, its errors are checked normally. Reachability is structural: conditional targets are included even when a particular run does not take the branch.
 - **Rename labels safely.** New names are unique, jump targets are dropdowns, and renaming a label updates its references. The name `start` is reserved for the entry point.
 - **Delete by dragging back to the palette.** There is no trash can. On small screens, the collapsed category rail remains a deletion target.
 - **Minimal drag feedback.** Only the actual target socket receives a thin neutral outline; statement insertion uses a faint silhouette. No yellow drag glow, selection frames, or block recoloring. Feedback clears when leaving the target or dropping. The executed block keeps its 3D/emboss effect.
@@ -91,9 +94,9 @@ Keyboard shortcuts: **Space** starts/pauses/resumes, **F10** steps, **Ctrl/Cmd+S
 
 ### Palette order
 
-**Events → Commands → Control → Stack → Memory → Values → Operators → Logic**
+**Labels → Registers → Memory → Operators → Logic**
 
-Start and label hats come first, followed by common commands. Memory writes precede the memory-read reporter. Register reporters have their own Values category. `CALL` and `RET` belong to Control; `PUSH` and `POP` belong to Stack.
+**Labels** combines start/label hats, jumps, CALL, and RET in yellow. **Registers** combines MOV/ADD/SUB/INC/DEC with orange register reporters, commands first. **Memory** combines PUSH/POP, memory writing, and the memory-read reporter in blue. Operators and Logic retain their expression helpers.
 
 The executable **CMP** instruction stays violet at the beginning of Logic. It sets flags for subsequent conditional jumps without changing register values. Boolean comparison reporters instead return a value and do not execute a CMP statement.
 
@@ -139,7 +142,7 @@ The current workspace autosaves in the browser. **File** offers JSON import/expo
 
 Project JSON contains `version`, `architecture`, `name`, and `workspace`. Older files without `architecture` remain **x86**. Unsupported architectures, invalid registers, and out-of-range literals are rejected without replacing the current project.
 
-Legacy text operands are migrated to value inputs. Old inline labels become independent event hats; explicit jumps preserve their original fallthrough behavior. Migration is idempotent and does not append duplicate jumps. Labels that previously used the now-reserved name `start` are renamed along with their references.
+Legacy text operands are migrated to value inputs. Old inline labels become independent event hats; explicit jumps preserve their original fallthrough behavior. Migration is idempotent and does not append duplicate jumps. Modern workspace saves include `scratchsemblyWorkspaceVersion: 1`, so parked statements are not mistaken for old scripts and automatically promoted to a start section after reload. Labels that previously used the now-reserved name `start` are renamed along with their references.
 
 Compatibility keys are deliberately unchanged:
 

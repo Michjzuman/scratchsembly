@@ -139,17 +139,14 @@ test("the palette opens with entry hats and ordinary commands, with reporters fu
 }) => {
   await load(page);
   await expect(page.getByRole("treeitem")).toHaveText([
-    "Ereignisse",
-    "Befehle",
-    "Steuerung",
-    "Stack",
+    "Labels",
+    "Register",
     "Speicher",
-    "Werte",
     "Rechnen",
     "Logik",
   ]);
   await expect(
-    page.getByRole("treeitem", { name: "Ereignisse", exact: true }),
+    page.getByRole("treeitem", { name: "Labels", exact: true }),
   ).toHaveAttribute("aria-selected", "true");
   const blocks = palette(page).locator(":scope > .blocklyBlock");
   await expect(blocks.first()).toHaveClass(/asm_start/);
@@ -172,7 +169,7 @@ test("the palette opens with entry hats and ordinary commands, with reporters fu
       [...block.classList].find((name) => /^(asm_|value_)/.test(name))!,
     ),
   );
-  expect(types.slice(2, 7)).toEqual([
+  expect(types.slice(10, 15)).toEqual([
     "asm_mov",
     "asm_add",
     "asm_sub",
@@ -180,12 +177,12 @@ test("the palette opens with entry hats and ordinary commands, with reporters fu
     "asm_dec",
   ]);
   const firstReporter = types.findIndex((type) => type.startsWith("value_"));
-  expect(
-    types
-      .slice(firstReporter)
-      .every((type) => type.startsWith("value_") || type === "asm_cmp"),
-  ).toBe(true);
-  await page.getByRole("treeitem", { name: "Befehle", exact: true }).click();
+  expect(firstReporter).toBe(15);
+  expect(types.indexOf("asm_push")).toBeGreaterThan(firstReporter);
+  expect(types.indexOf("asm_store")).toBeLessThan(
+    types.indexOf("value_memory"),
+  );
+  await page.getByRole("treeitem", { name: "Register", exact: true }).click();
   await expect(palette(page).locator(":scope > .asm_mov")).toBeInViewport();
   await expect(page.locator(".workspace-shell")).toHaveAttribute(
     "data-program-blocks",
@@ -337,7 +334,7 @@ test("dark mode also covers reporter previews, dropdown menus and dialogs", asyn
 }, info) => {
   await page.emulateMedia({ colorScheme: "dark" });
   await load(page);
-  await page.getByRole("treeitem", { name: "Werte", exact: true }).click();
+  await page.getByRole("treeitem", { name: "Register", exact: true }).click();
   await palette(page)
     .locator(":scope > .value_register")
     .filter({ hasText: /^B$/ })

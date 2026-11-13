@@ -38,7 +38,9 @@ For bug reports, include the selected architecture, language, theme, browser, ex
 - Keep the editor Scratch-like and purposeful. Do not add stage/sprite decoration or dashboard clutter. Read [the interface design notes](docs/interface-design.md) before changing interactions.
 - English is the default. Keep German and Assembly presentation modes working. Do not silently overwrite saved language choices or translate user-defined project/label names.
 - Architecture is a project property, not a presentation preference. ARM, AArch64, x86, and x86_64 must remain coherent across blocks, execution, registers, stack, and export.
-- Preserve compatibility with old project files and storage keys. Migrations must be idempotent and must not alter existing program behavior.
+- Preserve compatibility with old project files and storage keys. Migrations must be idempotent and must not alter existing program behavior. Keep the modern workspace marker so parked blocks are not promoted to legacy entry scripts.
+- Compile only start-reachable sections while retaining ignored code in saved workspaces. Reachable errors must still be reported; editing parked work must not reset the CPU.
+- Show architecture selection before the first project is saved, but never interrupt restoration of an existing project with another chooser.
 - Use exact integer handling for 64-bit values. Do not introduce JavaScript floating-point rounding into literals, previews, CPU state, or serialization.
 - Keep reporter previews read-only. One visible step executes a complete statement atomically; failures must not expose partial register, flag, memory, or PC changes.
 - Keep generated assembly native and assemblable. Do not replace instruction lowering with a hidden JavaScript evaluator or an `EVAL` pseudo-instruction.

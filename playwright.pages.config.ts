@@ -3,7 +3,12 @@ import config from "./playwright.config";
 
 export default defineConfig({
   ...config,
-  testMatch: ["**/english.e2e.ts", "**/pages.e2e.ts"],
+  testMatch: [
+    "**/english.e2e.ts",
+    "**/pages.e2e.ts",
+    "**/onboarding.e2e.ts",
+    "**/execution.e2e.ts",
+  ],
   testIgnore: [],
   use: {
     ...config.use,

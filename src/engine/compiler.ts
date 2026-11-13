@@ -25,6 +25,8 @@ export type CompileResult = {
   lines: SourceLine[];
   errors: { id: string; message: string }[];
   blockCount: number;
+  /** All editor blocks, including parked/unreachable blocks; not an execution count. */
+  workspaceBlockCount?: number;
   sourceBlocks: SourceBlock[];
 };
 const JUMPS = ["JMP", "JE", "JNE", "JG", "JL", "JGE", "JLE", "CALL"];

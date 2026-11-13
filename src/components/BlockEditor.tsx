@@ -21,6 +21,7 @@ import {
   migrateWorkspace,
   readExpression,
   readWorkspace,
+  saveWorkspaceData,
   specState,
   theme,
 } from "../block-model";
@@ -289,9 +290,7 @@ export const BlockEditor = forwardRef<EditorHandle, Props>(
           }
         },
         save() {
-          return workspace.current
-            ? Blockly.serialization.workspaces.save(workspace.current)
-            : {};
+          return workspace.current ? saveWorkspaceData(workspace.current) : {};
         },
         zoom(amount) {
           const ws = workspace.current;
@@ -370,10 +369,7 @@ export const BlockEditor = forwardRef<EditorHandle, Props>(
       };
       const emit = () => {
         syncStart();
-        callbacks.current.onChange(
-          readWorkspace(ws),
-          Blockly.serialization.workspaces.save(ws),
-        );
+        callbacks.current.onChange(readWorkspace(ws), saveWorkspaceData(ws));
       };
       const showPreview = (
         event: Blockly.Events.Abstract,
@@ -557,7 +553,7 @@ export const BlockEditor = forwardRef<EditorHandle, Props>(
       if (!ws || language.current === props.language) return;
       language.current = props.language;
       setPreview(null);
-      const data = Blockly.serialization.workspaces.save(ws),
+      const data = saveWorkspaceData(ws),
         scale = ws.scale,
         x = ws.scrollX,
         y = ws.scrollY;

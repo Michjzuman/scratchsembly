@@ -547,8 +547,7 @@ kbd {
 .blocklyToolboxDelete {
   background: var(--error-bg) !important;
 }
-.cat-commands,
-.cat-data {
+.cat-registers {
   --category: #ff8c1a;
 }
 .cat-math {
@@ -557,17 +556,11 @@ kbd {
 .cat-logic {
   --category: #9966ff;
 }
-.cat-events {
+.cat-labels {
   --category: #ffbf00;
-}
-.cat-flow {
-  --category: #ffab19;
 }
 .cat-memory {
   --category: #4c97ff;
-}
-.cat-stack {
-  --category: #ff6680;
 }
 .blocklyFlyoutBackground {
   fill: var(--palette) !important;

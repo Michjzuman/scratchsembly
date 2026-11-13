@@ -25,12 +25,9 @@ test("fresh visitors get an entirely English editor, examples, Blockly menus, ru
   ).toBeVisible();
   await expect(page.locator(".project-name")).toHaveValue("My first countdown");
   await expect(page.getByRole("treeitem")).toHaveText([
-    "Events",
-    "Commands",
-    "Control",
-    "Stack",
+    "Labels",
+    "Registers",
     "Memory",
-    "Values",
     "Operators",
     "Logic",
   ]);
@@ -51,9 +48,10 @@ test("fresh visitors get an entirely English editor, examples, Blockly menus, ru
   );
 
   await main(page)
-    .locator(".asm_mov > .blocklyLabelField")
+    .locator(".asm_mov")
     .first()
-    .click({ button: "right" });
+    .locator(":scope > .blocklyPath:not(.blocklyPathSelected)")
+    .click({ button: "right", position: { x: 6, y: 15 } });
   await expect(page.locator(".blocklyContextMenu")).toContainText("Duplicate");
   await page.keyboard.press("Escape");
 

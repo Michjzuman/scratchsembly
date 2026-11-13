@@ -34,9 +34,10 @@ Keep the editor genuinely Scratch-like without unrelated Scratch decoration. Eve
 
 - The `start` hat has a small green play symbol. It is the single program entry point, not a "when green flag clicked" sentence. The existing hat can be moved; its palette template is disabled while one exists.
 - Every label is its own entry hat without a top connection. Scripts do not fall through into unrelated hats because of their visual position.
+- Only the start section and label sections reachable through jumps/calls are compiled and exported. Reachability follows references transitively and handles cycles; all conditional targets count as structurally reachable. Detached statements and unused label sections may remain incomplete without blocking execution, are not counted, and stay in saved workspace data. Referencing an unused section activates its validation. Editing ignored blocks does not reset CPU state.
 - The compiler emits hidden section-ending jumps. They are real branches in exported source but do not introduce extra visible execution steps, including after CALL/RET.
 - Label names are generated uniquely. Renaming a label updates jump references; jump destinations use dropdowns. `start` is reserved.
-- Legacy inline labels migrate to separate event hats. Explicit jumps preserve the old fallthrough behavior. Migration is idempotent; existing independent sections stay independent.
+- Legacy inline labels migrate to separate event hats. Explicit jumps preserve the old fallthrough behavior. Migration is idempotent; existing independent sections stay independent. Modern saves carry `scratchsemblyWorkspaceVersion: 1` so parked statements without a start hat are not incorrectly wrapped as legacy entry scripts on reload or language changes.
 
 ### Input appearance and feedback
 
@@ -50,16 +51,17 @@ Delete instructions and reporters by dragging them back into the palette. There 
 
 ## Palette order
 
-**Events → Commands → Control → Stack → Memory → Values → Operators → Logic**
+**Labels → Registers → Memory → Operators → Logic**
 
-Start and label hats come first, followed by MOV, ADD, SUB, INC, and DEC. Register reporters have a separate Values category rather than splitting up ordinary commands. Common instructions precede free expression helpers. Memory writing precedes reading.
+Labels combines start and label hats with jumps, CALL, and RET; all use the same yellow family. Registers combines MOV, ADD, SUB, INC, and DEC with orange register reporters, statements first. Memory combines PUSH, POP, memory writing, and the read reporter, all blue. There are no separate Events, Control, Commands, Values, or Stack categories.
 
-CMP remains a violet comparison instruction in Logic. CALL and RET belong in Control because their purpose is program flow; PUSH and POP belong in Stack.
+CMP remains a violet comparison instruction at the beginning of Logic.
 
 The category rail shares the palette background. Compact rounded category tabs have bold labels, small color capsules, and a category-colored border on the active tab. Palette refresh waits until a pointer gesture ends so a held reporter cannot change during a drag. On small screens the palette closes when a block is pulled out, freeing the target area; hidden scrollbars must not intercept workspace clicks.
 
 ## Project architecture
 
+- **First visit:** With no valid saved project, immediately show a focused architecture chooser. Require explicit **Create project** confirmation before saving any workspace; Escape/backdrop clicks do not silently choose x86. Open a matching countdown example. Existing saved projects skip the chooser, including legacy projects without an architecture field.
 - **File → New:** ARMv7-A/A32 with IDIV, AArch64/ARMv8-A, x86, or x86_64. The target changes only after confirming **Start fresh**. Canceling or changing language leaves the running project alone.
 - **Persistence:** Architecture is a fixed project property. Files without it are x86. Unknown targets, invalid registers, and unrepresentable numbers are rejected before replacing the project. AArch64 keeps the internal ID `arm64` for compatibility.
 - **Consistent views:** Header, register palette, destination menus, word width, stack slots, tooltips, mnemonics, and assembly syntax follow the project architecture together.

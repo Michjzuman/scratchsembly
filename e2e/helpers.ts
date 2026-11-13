@@ -57,6 +57,14 @@ export async function loadGermanUI(page: Page) {
 }
 export async function load(page: Page) {
   await page.goto("./");
+  await expect(page.locator(".scratch-app")).toBeVisible();
+  const create = page.getByRole("button", {
+    name: /^(Create project|Projekt erstellen)$/,
+  });
+  if (await create.isVisible()) {
+    await create.click();
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+  }
   await expect(page.locator(".workspace-shell")).toHaveAttribute(
     "data-program-blocks",
     "8",

@@ -113,8 +113,8 @@ const COLORS = {
   register: "#ff8c1a",
   math: "#59c059",
   logic: "#9966ff",
-  flow: "#ffab19",
-  stack: "#ff6680",
+  flow: "#ffbf00",
+  stack: "#4c97ff",
   memory: "#4c97ff",
 };
 export const BINARY_BLOCKS: {
@@ -843,33 +843,23 @@ export function buildToolbox() {
   return {
     kind: "categoryToolbox",
     contents: [
-      // Build a script first; value reporters and expression helpers follow below.
-      category("events", t("Ereignisse", "Events"), "#ffbf00", [
+      category("labels", "Labels", COLORS.flow, [
         { kind: "block", type: "asm_start" },
         { kind: "block", type: "asm_label", gap: 20 },
-      ]),
-      category(
-        "commands",
-        t("Befehle", "Commands"),
-        COLORS.register,
-        ["MOV", "ADD", "SUB", "INC", "DEC"].map(toolboxStatement),
-      ),
-      category(
-        "flow",
-        t("Steuerung", "Control"),
-        COLORS.flow,
-        ["JMP", "BRANCH", "JE", "JNE", "JG", "JL", "CALL", "RET"].map(
+        ...["JMP", "BRANCH", "JE", "JNE", "JG", "JL", "CALL", "RET"].map(
           toolboxStatement,
         ),
-      ),
-      category(
-        "stack",
-        "Stack",
-        COLORS.stack,
-        ["PUSH", "POP"].map(toolboxStatement),
-      ),
+      ]),
+      category("registers", t("Register", "Registers"), COLORS.register, [
+        ...["MOV", "ADD", "SUB", "INC", "DEC"].map(toolboxStatement),
+        ...getRegisterNames().map((reg) => ({
+          kind: "block",
+          ...expressionState(register(reg.native)),
+          gap: 12,
+        })),
+      ]),
       category("memory", t("Speicher", "Memory"), COLORS.memory, [
-        toolboxStatement("STORE"),
+        ...["PUSH", "POP", "STORE"].map(toolboxStatement),
         {
           kind: "block",
           type: "value_memory",
@@ -877,16 +867,6 @@ export function buildToolbox() {
           gap: 18,
         },
       ]),
-      category(
-        "data",
-        t("Werte", "Values"),
-        COLORS.register,
-        getRegisterNames().map((reg) => ({
-          kind: "block",
-          ...expressionState(register(reg.native)),
-          gap: 12,
-        })),
-      ),
       category("math", t("Rechnen", "Operators"), COLORS.math, [
         ...BINARY_BLOCKS.filter((block) => !block.logic).map(operatorToolbox),
         ...UNARY_BLOCKS.filter((block) => block.operator !== "not").map(
@@ -965,9 +945,33 @@ export function readWorkspace(workspace: Blockly.WorkspaceSvg): CompileResult {
         "en",
       ),
     );
-  const loose = tops.filter(
-    (block) => !["asm_start", "asm_label"].includes(block.type),
-  );
+  // Only sections structurally reachable from start participate in compilation.
+  // Unused hats and loose blocks remain editable/saved, even if incomplete.
+  const labelTargets = new Map<string, Blockly.Block[]>();
+  for (const label of labels) {
+    const name = String(label.getFieldValue("A"));
+    labelTargets.set(name, [...(labelTargets.get(name) || []), label]);
+  }
+  const reachable = new Set<Blockly.Block>(starts);
+  const pending: Blockly.Block[] = [...starts];
+  while (pending.length) {
+    const head = pending.pop()!;
+    let current = head.getNextBlock();
+    while (current) {
+      if (
+        jumps.includes(current.type.replace("asm_", "").toUpperCase()) ||
+        current.type === "asm_branch"
+      ) {
+        const target = String(current.getFieldValue("A") || "");
+        for (const label of labelTargets.get(target) || [])
+          if (!reachable.has(label)) {
+            reachable.add(label);
+            pending.push(label);
+          }
+      }
+      current = current.getNextBlock();
+    }
+  }
   if (tops.length && !starts.length)
     errors.push({ id: tops[0].id, message: "Füge einen start-Block hinzu." });
   if (starts.length > 1)
@@ -975,16 +979,12 @@ export function readWorkspace(workspace: Blockly.WorkspaceSvg): CompileResult {
       id: starts[1].id,
       message: "Es darf nur einen start-Block geben.",
     });
-  if (loose.length)
-    errors.push({
-      id: loose[0].id,
-      message: "Nicht jeder Befehlsstapel hat einen Ereignisblock.",
-    });
+  const activeLabels = labels.filter((label) => reachable.has(label));
   let end = "__scratchsembly_end";
-  const names = new Set(labels.map((block) => block.getFieldValue("A")));
+  const names = new Set(activeLabels.map((block) => block.getFieldValue("A")));
   while (names.has(end)) end += "_";
   let count = 0;
-  for (const top of [...starts, ...labels, ...loose]) {
+  for (const top of [...starts, ...activeLabels]) {
     const isEvent = ["asm_start", "asm_label"].includes(top.type);
     if (isEvent) {
       const head = {
@@ -1047,6 +1047,9 @@ export function readWorkspace(workspace: Blockly.WorkspaceSvg): CompileResult {
     });
   const result = compile(blocks, getArchitecture());
   result.blockCount = count;
+  result.workspaceBlockCount = workspace
+    .getAllBlocks(false)
+    .filter((block) => !block.isInsertionMarker()).length;
   result.sourceBlocks = visible;
   for (const instruction of result.program.instructions)
     if (["JMP", "B"].includes(instruction.op) && instruction.a === end)
@@ -1106,11 +1109,19 @@ export function specState(spec: BlockSpec): State {
   }
   return { type, fields, inputs };
 }
+/** Mark modern saves so parked blocks are never mistaken for pre-hat legacy scripts. */
+export function saveWorkspaceData(workspace: Blockly.Workspace) {
+  return {
+    ...Blockly.serialization.workspaces.save(workspace),
+    scratchsemblyWorkspaceVersion: 1,
+  };
+}
 /** Pure, tested migration before Blockly validates the new dropdown/input schema. */
 export function migrateWorkspace(
   data: Record<string, unknown>,
 ): Record<string, unknown> {
   const cloned = structuredClone(data);
+  const legacy = cloned.scratchsemblyWorkspaceVersion !== 1;
   const root = cloned.blocks as { blocks?: State[] } | undefined;
   let count = 0;
   const states: State[] = [];
@@ -1169,7 +1180,7 @@ export function migrateWorkspace(
     (state) => !state.type.startsWith("value_"),
   );
   const needsEntry =
-    legacyHead?.length === 1 && reserved.includes(legacyHead[0]);
+    legacy && legacyHead?.length === 1 && reserved.includes(legacyHead[0]);
   for (const state of states)
     if (
       state.fields &&
@@ -1191,5 +1202,6 @@ export function migrateWorkspace(
           }
         : state,
     );
-  return splitEventSections(cloned);
+  cloned.scratchsemblyWorkspaceVersion = 1;
+  return splitEventSections(cloned, legacy);
 }

@@ -4,6 +4,7 @@ type State = Blockly.serialization.blocks.State;
 /** Split old inline labels into independent event heads, preserving fallthrough with explicit jumps. */
 export function splitEventSections(
   data: Record<string, unknown>,
+  legacyEntry = true,
 ): Record<string, unknown> {
   const root = data.blocks as { blocks?: State[] } | undefined;
   if (!root?.blocks) return data;
@@ -21,7 +22,12 @@ export function splitEventSections(
       continue;
     }
     let head: State = original;
-    if (!hasStart && ordinary.length === 1 && original === ordinary[0]) {
+    if (
+      legacyEntry &&
+      !hasStart &&
+      ordinary.length === 1 &&
+      original === ordinary[0]
+    ) {
       head = {
         type: "asm_start",
         x: original.x ?? 120,
