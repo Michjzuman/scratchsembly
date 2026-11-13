@@ -61,6 +61,7 @@ import {
   type Architecture,
 } from "./architectures";
 import { createState } from "./engine/machine";
+import type { BlockInfo } from "./block-help";
 
 type Project = {
   version: 1;
@@ -68,7 +69,8 @@ type Project = {
   name: string;
   workspace: WorkspaceData;
 };
-type Modal = "examples" | "learn" | "help" | "new" | "welcome" | null;
+type Modal =
+  "examples" | "learn" | "help" | "new" | "welcome" | "block-info" | null;
 const STORAGE_KEY = "asmblocks.project.v1"; // Preserve projects from the previous name.
 function readProject(): Project | null {
   try {
@@ -140,6 +142,7 @@ export default function App() {
   const [changed, setChanged] = useState<string[]>([]),
     [logs, setLogs] = useState<LogEntry[]>([]),
     [breakpoints, setBreakpoints] = useState<string[]>([]);
+  const [blockInfo, setBlockInfo] = useState<BlockInfo | null>(null);
   const [modal, setModal] = useState<Modal>(initialProject ? null : "welcome"),
     [menu, setMenu] = useState<"file" | "edit" | null>(null);
   const [saved, setSaved] = useState<"saved" | "saving" | "error">("saved"),
@@ -319,6 +322,10 @@ export default function App() {
     setLogs([]);
   }, [send]);
   const closeModal = useCallback(() => setModal(null), []);
+  const showBlockInfo = useCallback((info: BlockInfo) => {
+    setBlockInfo(info);
+    setModal("block-info");
+  }, []);
   useEffect(() => {
     const handler = (event: KeyboardEvent) => {
       if (
@@ -747,6 +754,7 @@ export default function App() {
                 activeId={activeId}
                 breakpoints={breakpoints}
                 onToggleBreakpoint={toggleBreakpoint}
+                onBlockInfo={showBlockInfo}
                 language={language}
                 state={state}
                 visible={view === "blocks"}
@@ -974,6 +982,28 @@ export default function App() {
           <button className="dialog-primary" onClick={() => setModal("learn")}>
             {t("Anleitung öffnen", "Open guide")}
           </button>
+        </Dialog>
+      )}
+      {modal === "block-info" && blockInfo && (
+        <Dialog
+          title={t("Block-Info", "Block info")}
+          eyebrow=""
+          onClose={closeModal}
+        >
+          <p className="dialog-intro block-info-content">
+            <strong>{blockInfo.title}</strong>
+            <br />
+            {blockInfo.description}
+          </p>
+          <p className="dialog-note">
+            {architectureLabel(architecture)} ·{" "}
+            {architectureInfo(architecture).bits}-bit
+            <br />
+            {t(
+              "Diese Info führt keinen Block aus.",
+              "Opening info does not execute the block.",
+            )}
+          </p>
         </Dialog>
       )}
       {(modal === "new" || modal === "welcome") && (

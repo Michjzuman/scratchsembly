@@ -8,6 +8,7 @@ export default defineConfig({
     "**/pages.e2e.ts",
     "**/onboarding.e2e.ts",
     "**/execution.e2e.ts",
+    "**/block-info.e2e.ts",
   ],
   testIgnore: [],
   use: {

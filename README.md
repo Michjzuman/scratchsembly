@@ -74,6 +74,7 @@ This is not just a syntax setting: register sets, integer widths, flags, stack b
 - **Edit constants directly.** White, rounded inputs accept integer literals. Empty numeric inputs mean zero. Palette templates do not contain pre-inserted register or expression reporters. There is no separate number reporter in the palette; older projects containing one still load.
 - **Dropdowns are not text inputs.** Dropdowns share their block's hue and have a frame, white text, and an arrow. Numbers and label names use white input pills. All block text is bold; white captions on yellow blocks have a subtle readability shadow.
 - **Inspect values without running.** Click a register, calculation, or comparison reporter to preview its current value. Previews are read-only, update with CPU state, and never execute statements or change registers, flags, memory, or the stack.
+- **Learn what a block does.** Right-click any block and choose **Info** for an explanation in a dialog, including palette templates, hats, reporters, and incomplete parked blocks. Explanations follow the selected language and architecture, including stack sizes, flags, and ARM link-register calls. Opening Info does not execute the block or change the program.
 - **Use independent entry points.** The `start` hat, with its green play symbol, is the program entry. Each label has its own hat. Reach another section using a jump or call, not by placing it below another script. A section ends instead of falling through into an unrelated label.
 - **Park work in progress freely.** Only the start section and label sections reachable from it through jumps or calls are compiled, counted, exported, and run. Unconnected blocks and unused labels stay in the workspace and in saved projects, even when incomplete or invalid. Editing them does not reset execution. If a section becomes reachable, its errors are checked normally. Reachability is structural: conditional targets are included even when a particular run does not take the branch.
 - **Rename labels safely.** New names are unique, jump targets are dropdowns, and renaming a label updates its references. The name `start` is reserved for the entry point.
@@ -196,6 +197,7 @@ src/
   registers.ts                Readable aliases and native register roles
   blocks.ts                   Instruction metadata and example programs
   block-model.ts              Block schema, reporters, palette, validation
+  block-help.ts               Read-only Info descriptions and native instruction help
   event-sections.ts           Legacy inline-label migration
   components/
     BlockEditor.tsx           Blockly, value previews, snapping, deletion targets

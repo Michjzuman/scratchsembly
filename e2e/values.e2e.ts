@@ -296,6 +296,28 @@ test("a palette refresh cannot change the reporter held before a drag starts", a
   );
   await expect(page.locator(".program-error")).toHaveCount(0);
 });
+test("a pending palette refresh leaves a right-click Info menu usable", async ({
+  page,
+}) => {
+  await page.getByRole("treeitem", { name: "Register", exact: true }).click();
+  const source = palette(page)
+    .locator(":scope > .value_register")
+    .filter({ hasText: /^B$/ });
+  await source.click({ button: "right" });
+  const info = page.getByRole("menuitem", { name: "Info", exact: true });
+  await expect(info).toBeVisible();
+  await page.evaluate(async () => {
+    const Blockly = await import("/node_modules/.vite/deps/blockly_core.js");
+    Blockly.common.getMainWorkspace().getToolbox().refreshSelection();
+    await new Promise((resolve) => setTimeout(resolve, 180));
+  });
+  await expect(info).toBeVisible();
+  await info.click();
+  await expect(
+    page.getByRole("dialog", { name: "Block-Info", exact: true }),
+  ).toContainText("Register B (EBX)");
+  await expect(page.locator(".step-counter b")).toHaveText("0");
+});
 test("deletes a block by dragging it into the block menu, with no trash can", async ({
   page,
 }, info) => {

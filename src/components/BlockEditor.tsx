@@ -40,6 +40,7 @@ import {
 } from "../architectures";
 import { exampleBlocks } from "../examples";
 import { evaluateTarget } from "../engine/machine";
+import { getBlockInfo, type BlockInfo } from "../block-help";
 
 registerContinuousToolbox();
 class ScratchFlyout extends ContinuousFlyout {
@@ -52,11 +53,11 @@ class ScratchFlyout extends ContinuousFlyout {
   override show(contents: Blockly.utils.toolbox.FlyoutDefinition | string) {
     clearTimeout(this.refreshTimer);
     if (this.disposed) return;
-    // The plugin refreshes after edits. Never dispose a template while a pointer
-    // gesture is using it: its field values would be lost before the drag starts.
+    // Do not replace a held template or dismiss an open context menu during refresh.
     if (
       this.targetWorkspace?.getGesture() ||
-      this.getWorkspace()?.getGesture()
+      this.getWorkspace()?.getGesture() ||
+      Blockly.ContextMenu.getMenu()
     ) {
       this.refreshTimer = setTimeout(() => this.show(contents), 50);
       return;
@@ -130,6 +131,7 @@ type Props = {
   visible: boolean;
   onChange: (result: CompileResult, workspace: WorkspaceData) => void;
   onToggleBreakpoint: (id: string) => void;
+  onBlockInfo: (info: BlockInfo) => void;
 };
 function loadWorkspace(data: WorkspaceData, workspace: Blockly.WorkspaceSvg) {
   Blockly.serialization.workspaces.load(
@@ -486,6 +488,24 @@ export const BlockEditor = forwardRef<EditorHandle, Props>(
       const flyoutListener = (event: Blockly.Events.Abstract) =>
         showPreview(event, paletteWorkspace);
       paletteWorkspace.addChangeListener(flyoutListener);
+      const infoName = `scratchsembly_info_${ws.id}`;
+      Blockly.ContextMenuRegistry.registry.register({
+        id: infoName,
+        scopeType: Blockly.ContextMenuRegistry.ScopeType.BLOCK,
+        displayText: () => "Info",
+        preconditionFn: ({ block }) =>
+          block &&
+          !block.isInsertionMarker() &&
+          (block.workspace === ws || block.workspace === paletteWorkspace)
+            ? "enabled"
+            : "hidden",
+        callback: ({ block }) => {
+          if (!block) return;
+          setPreview(null);
+          callbacks.current.onBlockInfo(getBlockInfo(block));
+        },
+        weight: 0,
+      });
       const contextName = `asm_breakpoint_${ws.id}`;
       Blockly.ContextMenuRegistry.registry.register({
         id: contextName,
@@ -495,11 +515,12 @@ export const BlockEditor = forwardRef<EditorHandle, Props>(
             ? t("Breakpoint entfernen", "Remove breakpoint")
             : t("Breakpoint setzen", "Set breakpoint"),
         preconditionFn: (scope) =>
-          !scope.block ||
-          scope.block.outputConnection ||
-          ["asm_label", "asm_start"].includes(scope.block.type)
-            ? "disabled"
-            : "enabled",
+          !scope.block || scope.block.workspace !== ws
+            ? "hidden"
+            : scope.block.outputConnection ||
+                ["asm_label", "asm_start"].includes(scope.block.type)
+              ? "disabled"
+              : "enabled",
         callback: (scope) => {
           if (scope.block) callbacks.current.onToggleBreakpoint(scope.block.id);
         },
@@ -542,6 +563,7 @@ export const BlockEditor = forwardRef<EditorHandle, Props>(
         window.removeEventListener("keydown", escape);
         mediaQuery.removeEventListener("change", resizeMode);
         Blockly.ContextMenuRegistry.registry.unregister(contextName);
+        Blockly.ContextMenuRegistry.registry.unregister(infoName);
         ws.removeChangeListener(listener);
         paletteWorkspace.removeChangeListener(flyoutListener);
         ws.dispose();

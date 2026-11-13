@@ -9,6 +9,7 @@ import {
   type Language,
 } from "./i18n";
 import { splitEventSections } from "./event-sections";
+import { instructionHelp } from "./block-help";
 import { BLOCKS, type BlockSpec } from "./blocks";
 import {
   compile,
@@ -25,7 +26,6 @@ import {
   type UnaryOperator,
 } from "./engine/expressions";
 import {
-  friendlyText,
   getRegisterNames,
   registerOptions,
   registerDetail,
@@ -223,21 +223,24 @@ export const BINARY_BLOCKS: {
     operator: "&",
     text: "Bit-UND",
     logic: true,
-    tooltip: "Verknüpft die 32 Bits beider Werte mit UND.",
+    tooltip:
+      "Bitweises UND: Ein Ergebnisbit ist nur gesetzt, wenn das entsprechende Bit in beiden Eingaben gesetzt ist.",
   },
   {
     type: "value_or",
     operator: "|",
     text: "Bit-ODER",
     logic: true,
-    tooltip: "Verknüpft die 32 Bits beider Werte mit ODER.",
+    tooltip:
+      "Bitweises ODER: Ein Ergebnisbit ist gesetzt, wenn das entsprechende Bit in mindestens einer Eingabe gesetzt ist.",
   },
   {
     type: "value_xor",
     operator: "^",
     text: "Bit-XOR",
     logic: true,
-    tooltip: "Verknüpft die 32 Bits beider Werte mit exklusivem ODER.",
+    tooltip:
+      "Bitweises XOR: Ein Ergebnisbit ist gesetzt, wenn das entsprechende Bit in genau einer Eingabe gesetzt ist.",
   },
   {
     type: "value_shift_left",
@@ -287,13 +290,15 @@ function wordHint(text: string) {
   return text
     .replace(/32(?=-Bit| Bits|-bit| bits)/g, String(bits))
     .replace(/int32/g, `int${bits}`)
-    .replace(/−2147483648/g, `−${1n << BigInt(bits - 1)}`);
+    .replace(/−2147483648/g, `−${1n << BigInt(bits - 1)}`)
+    .replace(/unteren 5 Bits/g, `unteren ${bits === 64 ? 6 : 5} Bits`);
 }
 function operatorHint(op: string) {
+  const shiftBits = architectureInfo().bits === 64 ? 6 : 5;
   const hints: Record<string, string> = {
     "+": "Adds two 32-bit integers.",
     "-": "Subtracts the right value from the left.",
-    "*": "Multiplies integers using IMUL.",
+    "*": "Multiplies two integers using native instructions. The result wraps to the target word width.",
     "/": "Integer division, truncated towards zero: 7 / 2 = 3. Division by zero stops the block.",
     "%": "Signed division remainder: -7 mod 3 = -1.",
     min: "The smaller signed value.",
@@ -301,11 +306,11 @@ function operatorHint(op: string) {
     abs: "Absolute value. The minimum int32 value wraps around.",
     neg: "Negates the value.",
     not: "Inverts all 32 bits.",
-    "&": "Bitwise AND.",
-    "|": "Bitwise OR.",
-    "^": "Bitwise XOR.",
-    "<<": "Logical left shift. The count uses its lowest 5 bits.",
-    ">>": "Logical right shift. The count uses its lowest 5 bits.",
+    "&": "Bitwise AND: a result bit is set only when the corresponding bit is set in both inputs.",
+    "|": "Bitwise OR: a result bit is set when the corresponding bit is set in at least one input.",
+    "^": "Bitwise XOR: a result bit is set when the corresponding bit is set in exactly one input.",
+    "<<": `Logical left shift. The count uses its lowest ${shiftBits} bits.`,
+    ">>": `Logical right shift. The count uses its lowest ${shiftBits} bits.`,
     "=": "True if the values are equal.",
     "!=": "True if the values differ.",
     "<": "Signed less-than comparison.",
@@ -440,7 +445,10 @@ Blockly.Blocks.asm_start = {
     this.setNextStatement(true);
     this.setStyle("event_blocks");
     this.setTooltip(
-      t("Hier startet das Programm.", "The program starts here."),
+      t(
+        "Hier startet das Programm. Nur dieser Stapel und darüber angesprungene oder aufgerufene Marken werden ausgeführt. Lose Blöcke bleiben unberücksichtigt.",
+        "The program starts here. Only this stack and label sections reached through jumps or calls are executed. Parked blocks are ignored.",
+      ),
     );
   },
 };
@@ -728,21 +736,7 @@ for (const definition of BLOCKS.filter(
                 definition.category === "data" ? "memory" : definition.category
               ],
       );
-      this.setTooltip(
-        friendlyText(
-          t(
-            definition.op === "PUSH" || definition.op === "POP"
-              ? `${definition.op === "PUSH" ? "Legt einen Wert auf den Stack" : "Holt einen Wert vom Stack"}. ${architectureInfo().stack}: ${architectureInfo().stackBytes} Byte pro Stackplatz, ${architectureInfo().bits} Bit pro Wert.`
-              : ["INC", "DEC"].includes(definition.op) &&
-                  getArchitecture().startsWith("arm")
-                ? "Ändert den Wert um 1 und setzt die ARM-Flags (ADDS/SUBS)."
-                : `${wordHint(definition.description)} ${getArchitecture()}: ${definition.op}.`,
-            definition.op === "CMP"
-              ? `Compares two values and sets the CPU flags for subsequent conditional jumps (e.g. when equal or not equal). Does not change any register value. ${getArchitecture()}: CMP.`
-              : `${englishWords[definition.op]?.[0] || definition.op}. ${getArchitecture()}, ${architectureInfo().bits}-bit. Stack slot: ${architectureInfo().stackBytes} bytes.`,
-          ),
-        ),
-      );
+      this.setTooltip(instructionHelp(definition.op));
     },
   };
 Blockly.Blocks.asm_branch = {

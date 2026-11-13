@@ -53,6 +53,7 @@ Use English for new documentation, comments, test descriptions, and public-facin
 ## Code map
 
 - `src/block-model.ts`: Blockly schema, palette, expression inputs, event sections.
+- `src/block-help.ts`: read-only block Info and shared, architecture-aware instruction descriptions.
 - `src/architectures.ts`, `src/registers.ts`: target profiles and register aliases.
 - `src/engine/`: native lowering, execution, and read-only preview evaluation.
 - `src/components/BlockEditor.tsx`: editor integration and pointer interactions.

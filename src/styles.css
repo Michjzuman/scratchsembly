@@ -1276,6 +1276,9 @@ kbd {
   line-height: 1.7;
   padding: 23px 24px 0;
 }
+.block-info-content {
+  overflow-wrap: anywhere;
+}
 .dialog-note {
   font-size: 12px;
   line-height: 1.7;
