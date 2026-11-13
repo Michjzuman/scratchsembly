@@ -334,8 +334,8 @@ describe("block schema, event sections, and migration", () => {
       const categories = buildToolbox().contents;
       expect(categories.map((category) => category.name)).toEqual(
         language === "de"
-          ? ["Labels", "Register", "Speicher", "Rechnen", "Logik"]
-          : ["Labels", "Registers", "Memory", "Operators", "Logic"],
+          ? ["Labels", "Speicher", "Rechnen", "Logik", "Register"]
+          : ["Labels", "Memory", "Operators", "Logic", "Registers"],
       );
       const types = categories.flatMap((category) =>
         category.contents.map((entry) => String(entry.type)),
@@ -354,7 +354,7 @@ describe("block schema, event sections, and migration", () => {
           entries.slice(firstValue).every((type) => type.startsWith("value_")),
         ).toBe(true);
       }
-      expect(categories[4].contents[0].type).toBe("asm_cmp");
+      expect(categories[3].contents[0].type).toBe("asm_cmp");
       expect(types.filter((type) => type === "asm_cmp")).toHaveLength(1);
     }
   });
@@ -374,7 +374,7 @@ describe("block schema, event sections, and migration", () => {
       "asm_call",
       "asm_ret",
     ]);
-    expect(types(1)).toEqual([
+    expect(types(4)).toEqual([
       "asm_mov",
       "asm_add",
       "asm_sub",
@@ -382,7 +382,7 @@ describe("block schema, event sections, and migration", () => {
       "asm_dec",
       ...REGISTER_NAMES.map(() => "value_register"),
     ]);
-    expect(types(2)).toEqual([
+    expect(types(1)).toEqual([
       "asm_push",
       "asm_pop",
       "asm_store",

@@ -26,10 +26,10 @@ test("fresh visitors get an entirely English editor, examples, Blockly menus, ru
   await expect(page.locator(".project-name")).toHaveValue("My first countdown");
   await expect(page.getByRole("treeitem")).toHaveText([
     "Labels",
-    "Registers",
     "Memory",
     "Operators",
     "Logic",
+    "Registers",
   ]);
   await expect(
     main(page).locator(".asm_mov > .blocklyLabelField").first(),

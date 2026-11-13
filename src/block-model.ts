@@ -850,14 +850,6 @@ export function buildToolbox() {
           toolboxStatement,
         ),
       ]),
-      category("registers", t("Register", "Registers"), COLORS.register, [
-        ...["MOV", "ADD", "SUB", "INC", "DEC"].map(toolboxStatement),
-        ...getRegisterNames().map((reg) => ({
-          kind: "block",
-          ...expressionState(register(reg.native)),
-          gap: 12,
-        })),
-      ]),
       category("memory", t("Speicher", "Memory"), COLORS.memory, [
         ...["PUSH", "POP", "STORE"].map(toolboxStatement),
         {
@@ -886,6 +878,14 @@ export function buildToolbox() {
           type: "value_not",
           inputs: emptyInputs("VALUE"),
         },
+      ]),
+      category("registers", t("Register", "Registers"), COLORS.register, [
+        ...["MOV", "ADD", "SUB", "INC", "DEC"].map(toolboxStatement),
+        ...getRegisterNames().map((reg) => ({
+          kind: "block",
+          ...expressionState(register(reg.native)),
+          gap: 12,
+        })),
       ]),
     ],
   };

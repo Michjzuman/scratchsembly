@@ -51,7 +51,7 @@ Delete instructions and reporters by dragging them back into the palette. There 
 
 ## Palette order
 
-**Labels → Registers → Memory → Operators → Logic**
+**Labels → Memory → Operators → Logic → Registers**
 
 Labels combines start and label hats with jumps, CALL, and RET; all use the same yellow family. Registers combines MOV, ADD, SUB, INC, and DEC with orange register reporters, statements first. Memory combines PUSH, POP, memory writing, and the read reporter, all blue. There are no separate Events, Control, Commands, Values, or Stack categories.
 

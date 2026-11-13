@@ -140,10 +140,10 @@ test("the palette opens with entry hats and ordinary commands, with reporters fu
   await load(page);
   await expect(page.getByRole("treeitem")).toHaveText([
     "Labels",
-    "Register",
     "Speicher",
     "Rechnen",
     "Logik",
+    "Register",
   ]);
   await expect(
     page.getByRole("treeitem", { name: "Labels", exact: true }),
@@ -169,7 +169,8 @@ test("the palette opens with entry hats and ordinary commands, with reporters fu
       [...block.classList].find((name) => /^(asm_|value_)/.test(name))!,
     ),
   );
-  expect(types.slice(10, 15)).toEqual([
+  const commands = types.indexOf("asm_mov");
+  expect(types.slice(commands, commands + 5)).toEqual([
     "asm_mov",
     "asm_add",
     "asm_sub",
@@ -177,8 +178,11 @@ test("the palette opens with entry hats and ordinary commands, with reporters fu
     "asm_dec",
   ]);
   const firstReporter = types.findIndex((type) => type.startsWith("value_"));
-  expect(firstReporter).toBe(15);
-  expect(types.indexOf("asm_push")).toBeGreaterThan(firstReporter);
+  expect(types[firstReporter]).toBe("value_memory");
+  expect(types.indexOf("asm_push")).toBeLessThan(firstReporter);
+  expect(
+    types.slice(commands + 5).every((type) => type === "value_register"),
+  ).toBe(true);
   expect(types.indexOf("asm_store")).toBeLessThan(
     types.indexOf("value_memory"),
   );

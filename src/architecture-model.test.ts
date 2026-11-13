@@ -36,7 +36,7 @@ for (const architecture of ARCHITECTURES) {
     expect(new Set(names.map((r) => r.native)).size).toBe(names.length);
     expect(new Set(names.map((r) => r.name)).size).toBe(names.length);
     expect(names[7].native).toBe(info.stack);
-    expect(buildToolbox().contents[1].contents.slice(5)).toHaveLength(
+    expect(buildToolbox().contents[4].contents.slice(5)).toHaveLength(
       names.length,
     );
     expect(canWriteRegister(info.stack)).toBe(true);

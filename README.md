@@ -94,7 +94,7 @@ Keyboard shortcuts: **Space** starts/pauses/resumes, **F10** steps, **Ctrl/Cmd+S
 
 ### Palette order
 
-**Labels → Registers → Memory → Operators → Logic**
+**Labels → Memory → Operators → Logic → Registers**
 
 **Labels** combines start/label hats, jumps, CALL, and RET in yellow. **Registers** combines MOV/ADD/SUB/INC/DEC with orange register reporters, commands first. **Memory** combines PUSH/POP, memory writing, and the memory-read reporter in blue. Operators and Logic retain their expression helpers.
 
